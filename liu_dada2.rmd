@@ -1,0 +1,35 @@
+---
+title: "DADA2"
+author: "Katherine Mueller"
+date: "7/1/2021"
+output: html_document
+---
+
+#Load Libraries
+```{r}
+library(readr)
+library(fs)
+library(dplyr)
+library(tibble)
+library(Biostrings)
+library(dada2)
+library(stringr)
+library(magrittr)
+library(ggplot2)
+library(tidyr)
+library(phyloseq)
+```
+
+#Setup
+Set up paths and directories
+```{r}
+#Directories
+data.dir = "/work/kdm65/"
+demux.dir = "/work/kdm65/liu"
+output.dir = "/work/kdm65/scratch"
+
+#Files
+map.file = file.path(data.dir, "Liu_map.txt")
+silva.ref = file.path(data.dir, "silva_nr99_v138.1_wSpecies_train_set.fa.gz")
+ps.rds = file.path(output.dir, "liu.rds")
+```
