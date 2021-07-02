@@ -12,3 +12,9 @@ De La Cuesta-Zuluaga et al 2017
 - 28 individuals with diabetes
 - 84 healthy controls
 - PRJNA325931
+
+Ang et al 2020
+- 17 men overweight or class I obese
+- 5 daily samples after 4 weeks of baseline diet
+- 5 daily samples after 4 weeks of ketogenic diet
+- PRJNA529487
