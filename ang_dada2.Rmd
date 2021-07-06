@@ -1,0 +1,209 @@
+---
+title: "ang_dada2"
+author: "Katherine Mueller"
+date: "7/6/2021"
+output: html_document
+---
+
+#Load Libraries
+```{r}
+library(readr)
+library(fs)
+library(dplyr)
+library(tibble)
+library(Biostrings)
+library(dada2)
+library(stringr)
+library(magrittr)
+library(ggplot2)
+library(phyloseq)
+```
+
+#Setup
+Set up paths and directories
+```{r}
+#Directories
+data.dir = "/work/kdm65"
+demux.dir = "/work/kdm65/delacuesta"
+output.dir = "/work/kdm65/scratch"
+
+if (dir_exists(output.dir)) {
+  dir_delete(output.dir)
+}
+dir_create(output.dir)
+
+#Files
+map.file = file.path(data.dir, "ang_map.txt")
+silva.ref = file.path(data.dir, "silva_nr99_v138.1_wSpecies_train_set.fa.gz")
+```
+
+#Filter and Trim
+Get lists of forward and reverse reads
+```{r}
+fnFs <- sort(list.files(demux.dir, pattern = ".fastq.gz", full.names = TRUE))
+
+forward_fastq_suffix = ".fastq.gz"
+
+fnFs %>%
+  basename %>%
+  str_replace(forward_fastq_suffix,"") ->
+  sample.names
+```
+
+```{r}
+print(fnFs)
+```
+
+```{r}
+print(sample.names)
+```
+
+#Quality Profiles
+```{r}
+plotQualityProfile(fnFs[1:2])
+```
+
+#Filter Reads
+Assign filepaths for filtered files
+```{r}
+filt_path <- file.path(output.dir, "filtered")
+filtFs <- file.path(filt_path, paste0(sample.names, "_filt.fastq.gz"))
+```
+
+Filter reads
+```{r}
+filt.out <- filterAndTrim(fnFs, filtFs, trimLeft = 10, truncLen = c(,),
+                          maxN = 0, maxEE = c(2,2), trunQ = 2, rm.phix = TRUE,
+                          compress = TRUE, multithread = TRUE)
+```
+
+```{r}
+head(filt.out)
+```
+
+#Learn Error Rates
+```{r}
+errF <- learnErrors(filtFs, multithread = TRUE)
+```
+
+```{r}
+plotErrors(errF, nominalQ = TRUE)
+```
+
+#Dereplication
+```{r}
+derepFs <- derepFastq(filtFs, verbose = TRUE)
+names(derepFs) <- sample.names
+```
+
+#Sample Inference
+```{r}
+dadaFs <- dada(derepFs, err=errF, multithread = TRUE)
+```
+
+```{r}
+dadaFs[[2]]
+```
+
+#Further processing
+```{r}
+seqtab <- makeSequenceTable(dadaFs)
+dim(seqtab)
+```
+
+```{r}
+table(nchar(getSequences(seqtab)))
+```
+
+```{r}
+seqtab2 <- seqtab[, nchar(colnames(seqtab)) %in% seq(,)]
+```
+
+Remove chimeras
+```{r}
+seqtab.nochim <- removeBimeraDenovo(seqtab2, method = "consensus", multithread = TRUE, verbose = TRUE)
+dim(seqtab.nochim)
+```
+
+```{r}
+sum(seqtab.nochim)/sum(seqtab2)
+```
+
+Track reads through the pipeline
+```{r}
+getN <- function(x) sum(getUniques(x))
+filt.out %>% as_tibble(rownames = "filename") %>%
+  mutate(sample = str_replace(filename, forward_fastq_suffix,"")) %>%
+  select(sample, input = reads.in, filtered = reads.out) ->
+  track
+
+sapply(dadaFs, getN) %>%
+  enframe(name = "sample", value = "denoised") ->
+  denoised
+track %<>% full_join(denoised, by = c("sample"))
+
+rowSums(seqtab2) %>%
+  enframe(name = "sample", value = "tabled") ->
+  tabled
+track %<>% full_join(tabled, by = c("sample"))
+
+rowSums(seqtab.nochim) %>%
+  enframe(name = "sample", value = "nonchim") ->
+  nonchim
+track %<>% full_join(nonchim, by = c("sample"))
+
+track
+```
+
+```{r}
+track %>%
+  gather(key = "stage", value = "counts", -c("sample")) %>%
+  replace_na(list(counts = 0)) %>%
+  mutate(stage=factor(stage, levels = c('input', 'filtered', 'denoised', 'tabled', 'nonchim'))) %>%
+  ggplot(mapping = aes(x = stage, y = counts, by = sample, group = sample)) + geom_line(alpha = 0.05) + theme_classic()
+```
+
+#Assign Taxonomy
+```{r}
+taxa <- assignTaxonomy(seqtab.nochim, silva.ref, multithread = TRUE)
+taxa.print <- taxa
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
+
+#Make Phyloseq Object
+Load metadata
+```{r}
+metadata.df = read_tsv(map.file) %>%
+  dplyr::rename(Sample = "Run") %>%
+  column_to_rownames("Sample") %>%
+  as.data.frame()
+
+metadata.df
+```
+
+Construct phyloseq object
+```{r}
+otus = otu_table(seqtab.nochim, taxa_are_rows = FALSE)
+sd = sample_data(metadata.df)
+ps <- phyloseq(otus, sd, tax_table(taxa))
+
+ps
+```
+
+Save phyloseq object as RDS
+```{r}
+write_rds(ps, ps.rds)
+```
+
+Confirm that the RDS is usable
+```{r}
+loaded.ps = read_rds(ps.rds)
+print(loaded.ps)
+```
+
+#Session Info
+```{r}
+sessionInfo()
+```
+
