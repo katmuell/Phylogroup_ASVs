@@ -24,7 +24,7 @@ Set up paths and directories
 ```{r}
 #Directories
 data.dir = "/work/kdm65"
-demux.dir = "/work/kdm65/delacuesta"
+demux.dir = "/work/kdm65/ang"
 output.dir = "/work/kdm65/scratch"
 
 if (dir_exists(output.dir)) {
@@ -72,7 +72,7 @@ filtFs <- file.path(filt_path, paste0(sample.names, "_filt.fastq.gz"))
 
 Filter reads
 ```{r}
-filt.out <- filterAndTrim(fnFs, filtFs, trimLeft = 10, truncLen = c(,),
+filt.out <- filterAndTrim(fnFs, filtFs, trimLeft = 10, truncLen = 140,
                           maxN = 0, maxEE = c(2,2), trunQ = 2, rm.phix = TRUE,
                           compress = TRUE, multithread = TRUE)
 ```
