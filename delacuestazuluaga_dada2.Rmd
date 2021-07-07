@@ -142,7 +142,7 @@ seqtab2 <- seqtab[, nchar(colnames(seqtab)) %in% seq(230,235)]
 
 Remove chimeras
 ```{r}
-seqtab.nochim <- removeBimeraDenovo(seqtab2, method = "consensus", mutlithread = TRUE, verbose = TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab2, method = "consensus", multithread = TRUE, verbose = TRUE)
 dim(seqtab.nochim)
 ```
 
