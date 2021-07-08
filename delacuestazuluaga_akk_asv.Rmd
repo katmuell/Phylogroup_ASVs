@@ -1,0 +1,21 @@
+---
+title: "De La Cuesta-Zuluaga Akkermansia ASVs"
+author: "Katherine Mueller"
+date: "7/8/2021"
+output: html_document
+---
+
+#Load Libraries
+```{r}
+library(phyloseq)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+#Define Paths
+```{r}
+delacuesta.rds <- "../../Data/Analysis/delacuestazuluaga.rds"
+outdir. <- "../../Data/Analysis"
+```
