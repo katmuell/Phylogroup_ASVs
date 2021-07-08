@@ -1,0 +1,32 @@
+---
+title: "Ang Akkermansia ASVs"
+author: "Katherine Mueller"
+date: "7/8/2021"
+output: html_document
+---
+
+#Load Libraries
+```{r}
+library(phyloseq)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+#Define Paths
+```{r}
+ang.rds <- "../../Data/Analysis/ang.rds"
+out.dir <- "../../Data/Anslysis"
+```
+
+#Load and Check Phyloseq Object
+```{r}
+ang.ps = read_rds(ang.rds)
+print(ang.ps)
+```
+
+```{r}
+sample_variables(ang.ps)
+```
+
