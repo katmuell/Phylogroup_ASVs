@@ -17,6 +17,7 @@ library(stringr)
 library(magrittr)
 library(ggplot2)
 library(phyloseq)
+library(tidyr)
 ```
 
 #Setup
@@ -26,15 +27,20 @@ Set up paths and directories
 data.dir = "/work/kdm65"
 demux.dir = "/work/kdm65/ang"
 output.dir = "/work/kdm65/scratch"
+```
 
+```{r}
 if (dir_exists(output.dir)) {
   dir_delete(output.dir)
 }
 dir_create(output.dir)
+```
 
+```{r}
 #Files
 map.file = file.path(data.dir, "ang_map.txt")
 silva.ref = file.path(data.dir, "silva_nr99_v138.1_wSpecies_train_set.fa.gz")
+ps.rds = file.path(output.dir, "ang.rds")
 ```
 
 #Filter and Trim
@@ -74,7 +80,7 @@ Filter reads
 ```{r}
 filt.out <- filterAndTrim(fnFs, filtFs, trimLeft = 10, truncLen = 140,
                           maxN = 0, maxEE = 2, truncQ = 2, rm.phix = TRUE,
-                          compress = TRUE, multithread = FALSE)
+                          compress = TRUE, multithread = TRUE)
 ```
 
 ```{r}
@@ -115,18 +121,14 @@ dim(seqtab)
 table(nchar(getSequences(seqtab)))
 ```
 
-```{r}
-seqtab2 <- seqtab[, nchar(colnames(seqtab)) %in% seq(,)]
-```
-
 Remove chimeras
 ```{r}
-seqtab.nochim <- removeBimeraDenovo(seqtab2, method = "consensus", multithread = TRUE, verbose = TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab, method = "consensus", multithread = TRUE, verbose = TRUE)
 dim(seqtab.nochim)
 ```
 
 ```{r}
-sum(seqtab.nochim)/sum(seqtab2)
+sum(seqtab.nochim)/sum(seqtab)
 ```
 
 Track reads through the pipeline
@@ -142,7 +144,7 @@ sapply(dadaFs, getN) %>%
   denoised
 track %<>% full_join(denoised, by = c("sample"))
 
-rowSums(seqtab2) %>%
+rowSums(seqtab) %>%
   enframe(name = "sample", value = "tabled") ->
   tabled
 track %<>% full_join(tabled, by = c("sample"))
