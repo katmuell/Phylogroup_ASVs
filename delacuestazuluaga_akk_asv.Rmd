@@ -19,3 +19,66 @@ library(ggplot2)
 delacuesta.rds <- "../../Data/Analysis/delacuestazuluaga.rds"
 outdir. <- "../../Data/Analysis"
 ```
+
+Load and check phyloseq object
+```{r}
+delacuesta.ps = read_rds(delacuesta.rds)
+print(delacuesta.ps)
+```
+
+```{r}
+sample_variables(delacuesta.ps)
+```
+
+#Relative Abundance
+```{r}
+rel.ps <- delacuesta.ps %>%
+  transform_sample_counts(function(x) x/sum(x))
+```
+
+#Akkermansia ASV Identification
+```{r}
+akks.ps <- rel.ps %>%
+  subset_taxa(Genus == "Akkermansia")
+print(akks.ps)
+```
+
+Filter for Akk ASVs at a mean abundance of at least 0.01%
+```{r}
+mean_cutoff = 0.0001
+mean_test = function(x) {
+  mean(x) >= mean_cutoff
+}
+
+akks.0001mean.ps <- akks.ps %>%
+  filter_taxa(mean_test, prune = TRUE)
+print(akks.0001mean.ps)
+```
+
+```{r}
+akks0001 <- akks.0001mean.ps %>%
+  otu_table() %>%
+  as.data.frame()
+colnames(akks0001)
+```
+
+Double check that none of the other ASVs should be included
+```{r}
+#Get dataframe for akk ASV abundances
+all_akks <- akks.ps %>%
+  otu_table() %>%
+  as.data.frame()
+
+#Make the dataframe long for plotting
+akks.long <- all_akks %>%
+  gather(ASV, Abundance)
+
+#Plot Akk ASV abundances
+akks.boxplot <- akks.long %>%
+  ggplot(aes(x = ASV, y = Abundance)) +
+  geom_point() +
+  geom_jitter()
+akks.boxplot
+```
+
+It looks like taking more than the initial four wouldn't contribute to anything. Taking the sequences of the four and comparing to known sequences reveals that ASV1 is an AmI, ASV2 is an AMII, ASV3 is an AmIV, and ASV 4 is an AmIII.
