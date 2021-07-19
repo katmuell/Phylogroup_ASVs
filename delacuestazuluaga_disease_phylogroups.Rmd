@@ -1,0 +1,56 @@
+---
+title: "DLCZ T2D and Akkermansia Phylogroups"
+author: "Katherine Mueller"
+date: "7/9/2021"
+output: html_document
+---
+
+#Load LIbraries
+```{r}
+library(phyloseq)
+library(cowplot)
+library(car)
+library(readr)
+library(dplyr)
+```
+
+#Define Paths
+```{r}
+phylogroups.rds = "../../Data/Analysis/delacuestazuluaga_wPhylogroups.rds"
+out.dir = "../../Data/Analysis"
+```
+
+#Load and Check Phyloseq Object
+```{r}
+phylogroups.ps = read_rds(phylogroups.rds)
+print(phylogroups.ps)
+```
+
+```{r}
+sample_variables(phylogroups.ps)
+```
+
+#Analysis
+Individuals are divided between those with T2D and healthy controls. Individuals with T2D are divided between those on metformin (1) and without metformin (0)
+```{r}
+unique(sample_data(phylogroups.ps)$Group)
+unique(sample_data(phylogroups.ps)$Met)
+```
+
+```{r}
+sample_data <- sample_data(phylogroups.ps) %>%
+  as.matrix() %>%
+  as.data.frame()
+sample_data$Akk_abund <- as.numeric(sample_data$Akk_abund)
+sample_data$AmI_abund <- as.numeric(sample_data$AmI_abund)
+sample_data$AmII_abund <- as.numeric(sample_data$AmII_abund)
+sample_data$AmIII_abund <- as.numeric(sample_data$AmIII_abund)
+sample_data$AmIV_abund <- as.numeric(sample_data$AmIV_abund)
+```
+
+Export for visualization
+```{r}
+write.csv(sample_data, file.path(out.dir, "delacuestazuluaga_phylogroup_dataframe.csv"))
+```
+
+
