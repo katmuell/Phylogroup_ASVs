@@ -232,7 +232,7 @@ Save phyloseq object as RDS
 write_rds(ps, ps.rds)
 ```
 
-Confirm that the PDS is usable
+Confirm that the RDS is usable
 ```{r}
 loaded.ps = read_rds(ps.rds)
 print(loaded.ps)
