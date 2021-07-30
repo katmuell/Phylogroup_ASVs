@@ -41,6 +41,34 @@ demux.dir = file.path(output.dir, "demux")
 map.file = file.path(data.dir, "Gopalakrishnan_map.txt")
 silva.ref = file.path(data.dir, "silva_nr99_v138.1_wSpecies_train_set.fa.gz")
 ps.rds = file.path(data.dir, "gopalakrishnan.rds")
+sample.ids = file.path(data.dir, "sample_id.txt")
+
+#Bash variables
+Sys.setenv(RAW_FASTQ_DIR = data.dir)
+```
+
+#Demultiplexing
+```{bash}
+run_path=/work/kdm65/gopalakrishnan
+cd $run_path
+for sam in `less sample_id.txt`
+do
+    echo $sam
+    less /work/kdm65/gopalakrishnan/ERR2162225.fastq | grep $sam -A 3 > $sam.fastq
+done
+```
+
+```{r}
+if (dir_exists(demux.dir)) {
+  dir_delete(demux.dir)
+}
+dir_create(demux.dir)
+```
+
+```{bash}
+cd $RAW_FASTQ_DIR
+ls Wargo*
+cp Wargo* /work/kdm65/scratch/demux
 ```
 
 #Filter and Trim
@@ -123,5 +151,122 @@ dadaRs <- dada(derepRs, err=errR, multithread = FALSE)
 
 ```{r}
 dadaFs[[2]]
+```
+
+#Merge Paired Reads
+```{r}
+mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose = TRUE)
+```
+
+```{r}
+head(mergers[[2]])
+```
+
+#Further Processing
+Construct sequence table
+```{r}
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+```
+
+```{r}
+table(nchar(getSequences(seqtab)))
+```
+
+```{r}
+seqtab2 <- seqtab[, nchar(colnames(seqtab)) %in% seq()]
+```
+
+Remove chimeras
+```{r}
+seqtab.nochim <- removeBimeraDenovo(seqtab2, method = "consensus", multithread = FALSE, verbose = TRUE)
+dim(seqtab.nochim)
+```
+
+```{r}
+sum(seqtab.nochim)/sum(seqtab2)
+```
+
+Track reads through the pipeline
+```{r}
+getN <- function(x) sum(getUniques(x))
+filt.out %>%
+  as_tibble(rownames = "filename") %>%
+  mutate(sample = str_replace(filename, forward_fastq_suffix,"")) %>%
+  select(sample, input = reads.in, filtered = reads.out) ->
+  track
+
+sapply(dadaFs, getN) %>%
+  enframe(name = "sample", value = "denoised") ->
+  denoised
+track %<>% full_join(denoised, by = c("sample"))
+
+sapply(mergers, getN) %>%
+  enframe(name = "sample", value = "merged") ->
+  merged
+track %<>% full_join(merged, by = c("sample"))
+
+rowSums(seqtab2) %>%
+  enframe(name = "sample", value = "tabled") ->
+  tabled
+track %<>% full_join(tabled, by = c("sample"))
+
+rowSums(seqtab.nochim) %>%
+  enframe(name = "sample", value = "nonchim") ->
+  nonchim
+track %<>% full_join(nonchim, by = c("sample"))
+
+track
+```
+
+```{r}
+track %>%
+  gather(key = "stage", value = "counts", -c("sample")) %>%
+  replace_na(list(counts = 0)) %>%
+  mutate(stage=factor(stage, levels = c('input', 'filtered', 'denoised', 'merged', 'tabled', 'nonchim'))) %>%
+  ggplot(mapping = aes(x = stage, y = counts, by = sample, group = sample)) + geom_line(alpha = 0.05) + theme_classic()
+```
+
+#Assign Taxonomy
+```{r}
+taxa <- assignTaxonomy(seqtab.nochim, silva.ref, multithread = FALSE)
+taxa.print <- taxa.printrownames(taxa.print) <- NULL
+head(taxa.print)
+```
+
+#Make Phyloseq Object
+Load metadata
+```{r}
+metadata.df = read_tsv(map.file) %>%
+  dplyr::rename(Sample = "Run") %>%
+  column_to_rownames("Sample") %>%
+  as.data.frame()
+
+metadata.df
+```
+
+Construct phyloseq object
+```{r}
+otus = otu_table(seqtab.nochim, taxa_are_rows = FALSE)
+sd = sample_data(metadata.df)
+ps <- phyloseq(otus, sd, tax_table(taxa))
+
+ps
+```
+
+Save phyloseq object as RDS
+```{r}
+write_rds(ps, ps.rds)
+```
+
+Confirm that the RDS is usable
+```{r}
+loaded.ps = read_rds(ps.rds)
+print(loaded.ps)
+```
+
+#Session Info
+```{r}
+sessionInfo()
 ```
 
