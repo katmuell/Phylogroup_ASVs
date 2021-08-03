@@ -98,9 +98,9 @@ colnames(akks0001)
 akks <- akks0001 %>%
   mutate(Akk_abundance = rowSums(.),
          has_AmI = ifelse(ASV1 >= 0.0001, "AmI_Positive", "AmI_Negative"),
-         has_AmII = ifelse(ASV2 >= 0.0001, "AmI_Positive", "AmI_Negative"),
-         has_AmIII = ifelse(ASV4 >= 0.0001, "AmI_Positive", "AmI_Negative"),
-         has_AmIV = ifelse(ASV3 >= 0.0001, "AmI_Positive", "AmI_Negative"),
+         has_AmII = ifelse(ASV2 >= 0.0001, "AmII_Positive", "AmII_Negative"),
+         has_AmIII = ifelse(ASV4 >= 0.0001, "AmIII_Positive", "AmIII_Negative"),
+         has_AmIV = ifelse(ASV3 >= 0.0001, "AmIV_Positive", "AmIV_Negative"),
          has_Akk = ifelse(Akk_abundance >= 0.0001, "Akk_Positive", "Akk_Negative"))
 
 #Assign new variables
@@ -129,4 +129,3 @@ saveRDS(rel.ps, file.path(out.dir, 'delacuestazuluaga_wPhylogroups.rds'))
 ```{r}
 sessionInfo()
 ```
-
