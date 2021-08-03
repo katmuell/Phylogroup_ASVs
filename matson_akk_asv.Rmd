@@ -122,6 +122,11 @@ Output the updated phyloseq object for later use
 saveRDS(rel.ps, file.path(out.dir, 'matson_wPhylogroups.rds'))
 ```
 
+Export for visualization
+```{r}
+write.csv(sample_data(rel.ps), file.path(out.dir, 'matson_phylogroup_dataframe.csv'))
+```
+
 #Session Info
 ```{r}
 sessionInfo()
