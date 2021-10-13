@@ -25,7 +25,7 @@ Matson et al 2018
 - PRJNA399742
 
 Baumgartner et al 2021
--56 with IBS
--25 with UC
--36 controls
--PRJNA644520
+- 56 with IBS
+- 25 with UC
+- 36 controls
+- PRJNA644520
