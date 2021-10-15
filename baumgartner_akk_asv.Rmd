@@ -55,7 +55,8 @@ akks.0001mean.ps <- akks.ps %>%
 print(akks.0001mean.ps)
 ```
 
-Double check that none of the other ASVs should be included
+That didn't work.
+Make a graph of all ASV abundances to see if maybe none of these ASVs pass the filter.
 ```{r}
 #Get dataframe for akk ASV abundances
 all_akks <- akks.ps %>%
@@ -74,3 +75,47 @@ akks.boxplot <- akks.long %>%
 akks.boxplot
 ```
 
+It looks like at least three of these should pass the filter. Do the abundance values look ok or are we missing data?
+```{r}
+all_akks[[1]]
+```
+
+```{r}
+mean(all_akks[[1]])
+```
+
+It looks like those NaN cells are messing things up. I'll replace them with 0.
+```{r}
+#Pull oTU table
+akk.otus <- akks.ps %>%
+  otu_table() %>%
+  as.data.frame()
+
+#Replace NaNs with 0s
+good.akk.otus <- replace(akk.otus, is.na(akk.otus), 0)
+
+#Construct fixed phyloseq object
+sd = sample_data(akks.ps)
+taxa = tax_table(akks.ps)
+
+good.akks.ps <- phyloseq(otu_table(good.akk.otus, taxa_are_rows = FALSE), sd, taxa)
+```
+
+Check new akk phyloseq
+```{r}
+good.akks.ps
+```
+
+Let's try filtering again
+
+Filter for Akk ASVs at a mean abundance of at least 0.01%
+```{r}
+mean_cutoff = 0.0001
+mean_test = function(x) {
+  mean(x) >= mean_cutoff
+}
+
+akks.0001mean.ps <- good.akks.ps %>%
+  filter_taxa(mean_test, prune = TRUE)
+print(akks.0001mean.ps)
+```
