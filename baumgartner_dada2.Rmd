@@ -217,7 +217,7 @@ head(taxa.print)
 #Make Phyloseq Object
 Load metadata
 ```{r}
-metadata.df = read_tsv(map.file) %>%
+metadata.df = read_csv(map.file) %>%
   dplyr::rename(Sample = "Run") %>%
   column_to_rownames("Sample") %>%
   as.data.frame()
