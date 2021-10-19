@@ -119,3 +119,58 @@ akks.0001mean.ps <- good.akks.ps %>%
   filter_taxa(mean_test, prune = TRUE)
 print(akks.0001mean.ps)
 ```
+
+```{r}
+akks0001 <- akks.0001mean.ps %>%
+  otu_table() %>%
+  as.data.frame()
+colnames(akks0001)
+```
+
+Taking the sequences of the four and comparing to known sequences reveals that ASV1 is an AmI, ASV2 is an AmI, ASV3 is an AmII, ASV4 is an AmI, ASV5 is an AmIV, and ASV6 is an AmI.
+
+#Breakdown of Phylogroup Abundances
+```{r}
+#Rename ASV sequences for ease of reading
+colnames(akks0001)[1] <- "ASV1"
+colnames(akks0001)[2] <- "ASV2"
+colnames(akks0001)[3] <- "ASV3"
+colnames(akks0001)[4] <- "ASV4"
+colnames(akks0001)[5] <- "ASV5"
+colnames(akks0001)[6] <- "ASV6"
+colnames(akks0001)
+```
+
+```{r}
+#Determine presence/absunce of each phylogroup
+akks <- akks0001 %>%
+  mutate(Akk_abundance = rowSums(.),
+         has_AmI = ifelse(ASV1 + ASV2 + ASV4 + ASV6 >= 0.0001, "AmI_Positive", "AmI_Negative"),
+         has_AmII = ifelse(ASV3 >= 0.0001, "AmII_Positive", "AmII_Negative"),
+         has_AmIV = ifelse(ASV5 >= 0.0001, "AmIV_Positive", "AmIV_Negative"),
+         has_Akk = ifelse(Akk_abundance >= 0.0001, "Akk_Positive", "Akk_Negative"))
+
+#Assign new variables
+sample_data(rel.ps)$AmI_abund <- (akks$ASV1 + akks$ASV2 + akks$ASV4 + akks$ASV6)
+sample_data(rel.ps)$AmI_presence <- akks$has_AmI
+sample_data(rel.ps)$AmII_abund <- akks$ASV3
+sample_data(rel.ps)$AmII_presence <- akks$has_AmII
+sample_data(rel.ps)$AmIV_abund <- akks$ASV5
+sample_data(rel.ps)$AmIV_presence <- akks$has_AmIV
+sample_data(rel.ps)$Akk_abund <- akks$Akk_abundance
+sample_data(rel.ps)$Akk_presence <- akks$has_Akk
+```
+
+```{r}
+sample_variables(rel.ps)
+```
+
+Output the updated phyloseq object for later use
+```{r}
+saveRDS(rel.ps, file.path(out.dir, 'baumgartner_wPhylogroups.rds'))
+```
+
+#Session Info
+```{r}
+sessionInfo()
+```
