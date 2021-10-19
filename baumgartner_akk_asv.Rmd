@@ -1,0 +1,121 @@
+---
+title: "Baumgartner Akkermansia ASVs"
+author: "Katherine Mueller"
+date: "10/14/2021"
+output: html_document
+---
+
+#Load Libraries
+```{r}
+library(phyloseq)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+#Define Paths
+```{r}
+baumgartner.rds <- "../../Data/Analysis/baumgartner.rds"
+out.dir <- "../../Data/Analysis"
+```
+
+Load and check phyloseq object
+```{r}
+baumgartner.ps = read_rds(baumgartner.rds)
+print(baumgartner.ps)
+```
+
+```{r}
+sample_variables(baumgartner.ps)
+```
+
+#Relative Abundance
+```{r}
+rel.ps <- baumgartner.ps %>%
+  transform_sample_counts(function(x) x/sum(x))
+```
+
+#Akkermansia ASV Identification
+```{r}
+akks.ps <- rel.ps %>%
+  subset_taxa(Genus == "Akkermansia")
+print(akks.ps)
+```
+
+Filter for Akk ASVs at a mean abundance of at least 0.01%
+```{r}
+mean_cutoff = 0.0001
+mean_test = function(x) {
+  mean(x) >= mean_cutoff
+}
+
+akks.0001mean.ps <- akks.ps %>%
+  filter_taxa(mean_test, prune = TRUE)
+print(akks.0001mean.ps)
+```
+
+That didn't work.
+Make a graph of all ASV abundances to see if maybe none of these ASVs pass the filter.
+```{r}
+#Get dataframe for akk ASV abundances
+all_akks <- akks.ps %>%
+  otu_table() %>%
+  as.data.frame()
+
+#Make the dataframe long for plotting
+akks.long <- all_akks %>%
+  gather(ASV, Abundance)
+
+#Plot Akk ASV abundances
+akks.boxplot <- akks.long %>%
+  ggplot(aes(x = ASV, y = Abundance)) +
+  geom_point() +
+  geom_jitter()
+akks.boxplot
+```
+
+It looks like at least three of these should pass the filter. Do the abundance values look ok or are we missing data?
+```{r}
+all_akks[[1]]
+```
+
+```{r}
+mean(all_akks[[1]])
+```
+
+It looks like those NaN cells are messing things up. I'll replace them with 0.
+```{r}
+#Pull oTU table
+akk.otus <- akks.ps %>%
+  otu_table() %>%
+  as.data.frame()
+
+#Replace NaNs with 0s
+good.akk.otus <- replace(akk.otus, is.na(akk.otus), 0)
+
+#Construct fixed phyloseq object
+sd = sample_data(akks.ps)
+taxa = tax_table(akks.ps)
+
+good.akks.ps <- phyloseq(otu_table(good.akk.otus, taxa_are_rows = FALSE), sd, taxa)
+```
+
+Check new akk phyloseq
+```{r}
+good.akks.ps
+```
+
+Let's try filtering again
+
+Filter for Akk ASVs at a mean abundance of at least 0.01%
+```{r}
+mean_cutoff = 0.0001
+mean_test = function(x) {
+  mean(x) >= mean_cutoff
+}
+
+akks.0001mean.ps <- good.akks.ps %>%
+  filter_taxa(mean_test, prune = TRUE)
+print(akks.0001mean.ps)
+```

@@ -23,3 +23,9 @@ Matson et al 2018
 - 26 Non-Responders to PD-1 blockade therapy in metastatic melanoma
 - 16 Responders
 - PRJNA399742
+
+Baumgartner et al 2021
+- 56 with IBS
+- 25 with UC
+- 36 controls
+- PRJNA644520
